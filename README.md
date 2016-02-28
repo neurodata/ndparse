@@ -25,3 +25,25 @@ It contains the legacy code for manno and macho.  The current version of ndod is
 - **mad**: machine annotation for deployment and scaling.
 
 *This repo is under extremely active development during the first quarter of 2016.  The previous version of mano, macho and ndod code may be found in [ndod](https://github.com/neurodata/ndod).  The core code that is used for computer vision by the neurodata team will be transitioned to a pip installable python package in the next few weeks.  Stay tuned.*
+
+~~~
+pip install conda
+conda create -n ndparse2 -c ilastik ilastik-everything-but-tracking
+source activate ndparse2
+conda install ipython notebook
+conda install requests gcc
+pip install blosc
+pip install ndio
+~~~
+
+
+For ilastik processing:
+
+~~~
+
+~~~
+
+For
+
+except:
+    pass
