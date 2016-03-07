@@ -24,6 +24,8 @@ It contains the legacy code for manno and macho.  The current version of ndod is
 - **maca**: big-data research algorithms to inform neuroscience
 - **mad**: machine annotation for deployment and scaling.
 
+To just use one of these, say **mana**, in python you can (and should) type the following: `from ndparse import mana`
+
 *This repo is under extremely active development during the first quarter of 2016.  The previous version of mano, macho and ndod code may be found in [ndod](https://github.com/neurodata/ndod).  The core code that is used for computer vision by the neurodata team will be transitioned to a pip installable python package in the next few weeks.  Stay tuned.*
 
 ~~~
