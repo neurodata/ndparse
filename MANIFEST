@@ -3,8 +3,10 @@ setup.cfg
 setup.py
 ndparse/__init__.py
 ndparse/algorithms/__init__.py
+ndparse/algorithms/algorithms.py
 ndparse/annotate/__init__.py
 ndparse/annotate/mana.py
 ndparse/deploy/__init__.py
 ndparse/learn/__init__.py
 ndparse/utils/__init__.py
+ndparse/utils/utils.py
