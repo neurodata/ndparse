@@ -45,7 +45,15 @@ For ilastik processing:
 
 ~~~
 
-For
+To plot an ndio obtained (RAMON or numpy array):
 
-except:
-    pass
+~~~
+import ndparse as ndp
+import ndio.remote.neurodata as ND
+nd = ND()
+token = 'kasthuri11cc'
+channel = 'image'
+im2 = nd.get_volume('ac3ac4','ac4_synapse_truth', 4400,5400, 5440, 6440, 1100, 1102, resolution=1)
+im = nd.get_volume(token, channel, 4400, 5400, 5440, 6440, 1100, 1102, resolution=1)
+ndp.plt(im,im2,slice=1, alpha=0.5)
+~~~
