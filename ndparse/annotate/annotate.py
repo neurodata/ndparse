@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 
-class mana:
+class annotate:
 
     def __init__(self):
         """
@@ -46,8 +46,7 @@ class mana:
         image = nd.get_cutout(token, channel, x_start, x_stop, y_start,
                               y_stop, z_start, z_stop, resolution=resolution)
 
-        fileout = 'imvol_token_{}_channel_{}_xstart_{}_xstop_{}' \
-                  '_ystart_{}_ystop_{}_zstart_{}_zstop_{}_res_{}' \
+        fileout = '{}_{}_x{}-{}_y{}-{}_z{}-{}_r{}' \
                   '.nii'.format(token, channel, x_start, x_stop,
                                 y_start, y_stop, z_start, z_stop,
                                 resolution)
@@ -57,9 +56,13 @@ class mana:
 
         return fileout
 
-    def put_mana_volume(self, data):
+    def put_ramon_volume(self, token, channel, annofile, ramonobj, x_start, x_stop, y_start,
+                              y_stop, z_start, z_stop, resolution=1, conncomp=0, remote='neurodata'):
         """
         Use ndio to put annotated nifti volume to a remote
+        This first prototype only uploads annotation labels and does no processing
+
+        TODO:  Extend to parse upload params from filename
 
         Arguments:
             data: nifti volume to convert
@@ -67,4 +70,29 @@ class mana:
         Returns:
             Success or failure
         """
+
+        import ndio.convert.nifti as ndnifti
+
+        if remote is 'neurodata':
+            import ndio.remote.neurodata as ND
+            nd = ND(remote)
+        else:
+            raise ValueError("remote option not implemented.")
+
+        anno = ndnifti.import_nifti(annofile)
+
+        if conncomp is 1:
+            from skimage.measure import label
+            anno, n_label = label(anno, return_num=True)
+
+        return anno
+        # relabel ids from 1
+
+#        nd.reserve_ids(token, channel, n_label)
+
+
+
+    def put_batch_ramon_meta(self, token, channel, resolution, file, ramonobj):
+
         pass
+        #RAMON

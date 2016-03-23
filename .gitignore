@@ -1,5 +1,6 @@
 *.nii
 *.idea
 build/*.nii
+build/*
 .ipynb*
 *.pyc

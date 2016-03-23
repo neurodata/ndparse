@@ -9,7 +9,7 @@ setup(
         'ndparse',
         'ndparse.annotate',
         'ndparse.algorithms',
-        'ndparse.learn',
+        'ndparse.assess',
         'ndparse.deploy',
         'ndparse.utils'
     ],
