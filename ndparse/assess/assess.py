@@ -1,12 +1,54 @@
 import numpy as np
 
-def pr_object(detect, truth):
+
+def pr_object(detect, truth, overlap=10):
+    # we assume that both truth and detect volumes are separate objects
+
+    import ndparse.utils
+    from scipy import stats
+    detect, n_detect = ndparse.utils.relabel_objects(detect)
+    truth, n_truth = ndparse.utils.relabel_objects(truth)
+
+    tp = 0
+    fp = 0
+    fn = 0
+
+    # TODO:  removing only greatest match
+
+    # for each truth object find a detection
+    for i in range(1, n_detect+1):  # background is ignored
+
+        match = detect[truth == i]
+        match = match[match > 0]  # get rid of spurious values
+
+        if len(match) >= overlap:
+            tp += 1
+
+            match = stats.mode(match)
+            # any detected objects can only be used once, so remove them here.
+            detect[detect == match] = 0
+
+        else:
+            fn += 1
+
+        detect_left, fp = ndparse.utils.relabel_objects(detect)
+
+    precision = tp/(tp+fp)
+    recall = tp/(tp+fn)
+    f1 = (2*precision*recall)/(precision+recall)
+
+    return precision, recall, f1, tp, fp, fn
+
+
+def find_operating_point(recall_vec, precision_vec, op_point='f1'):
+
+    if op_point is 'f1':
+        pass
+    else:
+        raise('Not implemented')
 
     pass
 
-def max_f1(recall, precision):
-
-    pass
 
 def pareto_front(vals1, vals2, round_val=3):
 
@@ -30,19 +72,13 @@ def pareto_front(vals1, vals2, round_val=3):
 
     return v1_out, v2_out, idx_out
 
-def display_pr_curve(precision, recall):
-    '''following examples from sklearn
-    # plots pr curve
-    np.sort
-    idx = np.sort(recall); #TODO
-    hold on
-    figure(100), plot(r3(idx), p3(idx), 'ko-'), grid on
-    set(gca,'XLim', [0,1], 'YLim', [0,1])
-    xlabel('recall')
-    ylabel('precision')
-    set(gcf, 'color', [1 1 1])
-    '''
 
+def display_pr_curve(precision, recall):
+    # following examples from sklearn
+
+    # TODO:  f1 operating point
+
+    import pylab as plt
     # Plot Precision-Recall curve
     plt.clf()
     plt.plot(recall, precision, label='Precision-Recall curve')
@@ -54,9 +90,33 @@ def display_pr_curve(precision, recall):
     plt.legend(loc="lower left")
     plt.show()
 
-def pr_curve_objectify_sweep(min_sizes=0, max_sizes=1e9, thresholds=np.arange(0,0.01,1)):
 
-    pass
+def pr_curve_objectify_sweep(probs, truth, min_sizes=0, max_sizes=1e9,
+                             thresholds=np.arange(0.3, 0.03, 1.03)):
+    import ndparse.algorithms
+    p_min = []
+    p_max = []
+    p_thresh = []
+    p_recall = []
+    p_precision = []
+    p_f1 = []
+
+    for thresh in thresholds:
+        for min in min_sizes:
+            for max in max_sizes:
+
+                detect = ndparse.algorithms.basic_objectify(probs, thresh,
+                                                            min, max)
+                p, r, f1 = pr_object(truth, detect)
+
+                p_min.append(min)
+                p_max.append(max)
+                p_thresh.append(thresh)
+                p_recall.append(r)
+                p_precision.append(p)
+                p_f1.append(f1)
+
+    return p_recall, p_precision, p_f1, p_min, p_max, p_thresh
 
 
 def gen_ramon_graph(token_synapse, channel_synapse,
@@ -77,11 +137,12 @@ def gen_ramon_graph(token_synapse, channel_synapse,
 
     nd = ND()
 
-    id_synapse = nd.get_ramon_ids(token_synapse, channel_synapse, ramon_type=ramon.RAMONSynapse)
+    id_synapse = nd.get_ramon_ids(token_synapse, channel_synapse,
+                                  ramon_type=ramon.RAMONSynapse)
     print 'There are: {} synapses'.format(len(id_synapse))
 
     # Instantiate graph instance
-    if is_directed == False:  # undirected case
+    if is_directed is False:  # undirected case
         G = nx.Graph()
     else:
         G = nx.DiGraph()
@@ -91,36 +152,40 @@ def gen_ramon_graph(token_synapse, channel_synapse,
     for x in range(np.shape(id_synapse)[0]):
 
         print str(x).zfill(4),
-        s = nd.get_ramon_metadata(token_synapse,channel_synapse,[id_synapse[x]])[0]
+        s = nd.get_ramon_metadata(token_synapse, channel_synapse,
+                                  [id_synapse[x]])[0]
 
         # for each segment
-        segments = s.segments[:,0]
-        direction = s.segments[:,1]  # 1: axon/pre, 2: dendrite/post (see enumerated types)
-        #print direction
+        segments = s.segments[:, 0]
+        direction = s.segments[:, 1]  # 1: axon/pre, 2: dendrite/post
+        # print direction
         if len(segments) != 2:
             print 'multi-way synapses not implemented!'
             raise
 
-        s1 = nd.get_ramon_metadata(token_neurons,channel_neurons,[segments[0]])[0]
+        s1 = nd.get_ramon_metadata(token_neurons, channel_neurons,
+                                   [segments[0]])[0]
         n1 = s1.neuron
-        s2 = nd.get_ramon_metadata(token_neurons,channel_neurons,[segments[1]])[0]
+        s2 = nd.get_ramon_metadata(token_neurons, channel_neurons,
+                                   [segments[1]])[0]
         n2 = s2.neuron
 
         if is_directed is False or (direction[0] == 1 and direction[1] == 2):
-            if G.has_edge(n1, n2): # edge already exists, increase weight
+            if G.has_edge(n1, n2):  # edge already exists, increase weight
                 G[n1][n2]['weight'] += 1
             else:
                 # new edge. add with weight=1
                 G.add_edge(n1, n2, weight=1)
 
         elif direction[0] == 2 and direction[1] == 1:
-            if G.has_edge(n2, n1): # edge already exists, increase weight
+            if G.has_edge(n2, n1):  # edge already exists, increase weight
                 G[n2][n1]['weight'] += 1
             else:
                 # new edge. add with weight=1
                 G.add_edge(n2, n1, weight=1)
         else:
-            print('1 pre and 1 post synaptic partner are required for directed graph estimation.')
+            print('1 pre and 1 post synaptic partner are'
+                  ' required for directed graph estimation.')
             raise
 
         if save_file is not None:
@@ -129,7 +194,8 @@ def gen_ramon_graph(token_synapse, channel_synapse,
             nx.write_graphml(G, save_graphml)
 
 
-def plot(im1, im2=None, cmap1='gray', cmap2='jet', slice=0, alpha=1, show_plot=True):
+def plot(im1, im2=None, cmap1='gray', cmap2='jet', slice=0,
+         alpha=1, show_plot=True):
     """
     Convenience function to handle plotting of neurodata arrays.
     Mostly tested with 8-bit image and 32-bit annos, but lots of
@@ -156,8 +222,8 @@ def plot(im1, im2=None, cmap1='gray', cmap2='jet', slice=0, alpha=1, show_plot=T
 
     # get im1_proc as 2D array
     fig = plt.figure()
-    fig.set_size_inches(2, 2)
-    ax = plt.Axes(fig, [0., 0., 2., 2.])
+    # fig.set_size_inches(2, 2)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
     ax.set_axis_off()
     fig.add_axes(ax)
 
@@ -208,13 +274,15 @@ def plot(im1, im2=None, cmap1='gray', cmap2='jet', slice=0, alpha=1, show_plot=T
         im2_proc = np.asarray(im2_proc, dtype='float')  # TODO better way
         im2_proc[im2_proc == 0] = np.nan  # zero out bg
         plt.imshow(im2_proc.T, cmap=cmap2,
-                         alpha=alpha, interpolation='nearest')
+                   alpha=alpha, interpolation='nearest')
     if show_plot is True:
         plt.show()
     else:
         return fig
 
-def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,fps=1,outFile='test.mp4'):
+
+def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,
+               fps=1, outFile='test.mp4'):
 
     # TODO properly nest plot function
 
@@ -223,7 +291,7 @@ def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,fps=1,outFile='
     import numpy as np
     import matplotlib.pyplot as plt
 
-    time = range(0,int(np.shape(im1)[2]))
+    time = range(0, int(np.shape(im1)[2]))
 
     fig = plt.figure()
     fig.set_size_inches(10, 10)
@@ -285,13 +353,14 @@ def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,fps=1,outFile='
             im2_proc = np.asarray(im2_proc, dtype='float')  # TODO better way
             im2_proc[im2_proc == 0] = np.nan  # zero out bg
             plt.imshow(im2_proc.T, cmap=cmap2,
-                             alpha=alpha, interpolation='nearest')
+                       alpha=alpha, interpolation='nearest')
 
         return mplfig_to_npimage(fig)
 
     animation = mpy.VideoClip(animate, duration=len(time))
-    animation.write_videofile(outFile, fps=fps, bitrate='5000k', codec='libx264')
-    #animation.write_gif(outFile, fps=fps,fuzz=0)
+    animation.write_videofile(outFile, fps=fps, bitrate='5000k',
+                              codec='libx264')
+    # animation.write_gif(outFile, fps=fps,fuzz=0)
 
 
 def print_ramon(ramon):

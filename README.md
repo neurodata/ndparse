@@ -36,6 +36,8 @@ conda create -n ndparse -c ilastik ilastik-everything-but-tracking
 source activate ndparse
 conda install ipython notebook
 conda install requests gcc blosc
+conda install conda install scikit-learn scikit-image
+pip install mahotas
 pip install ndio ndparse
 ~~~
 

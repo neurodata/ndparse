@@ -56,11 +56,12 @@ class annotate:
 
         return fileout
 
-    def put_ramon_volume(self, token, channel, annofile, ramonobj, x_start, x_stop, y_start,
-                              y_stop, z_start, z_stop, resolution=1, conncomp=0, remote='neurodata'):
+    def put_ramon_volume(self, token, channel, annofile, ramonobj, x_start,
+                         x_stop, y_start, y_stop, z_start, z_stop,
+                         resolution=1, conncomp=0, remote='neurodata'):
         """
         Use ndio to put annotated nifti volume to a remote
-        This first prototype only uploads annotation labels and does no processing
+        This first prototype only uploads annotation labels
 
         TODO:  Extend to parse upload params from filename
 
@@ -85,14 +86,11 @@ class annotate:
             from skimage.measure import label
             anno, n_label = label(anno, return_num=True)
 
-        return anno
         # relabel ids from 1
-
-#        nd.reserve_ids(token, channel, n_label)
-
-
+        # nd.reserve_ids(token, channel, n_label)
+        return anno
 
     def put_batch_ramon_meta(self, token, channel, resolution, file, ramonobj):
+        # RAMON
 
         pass
-        #RAMON

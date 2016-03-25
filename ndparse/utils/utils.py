@@ -17,7 +17,7 @@ def compute_centroids(object_matrix, preserve_ids=False, round_val=False):
 
     for r in rp:
         if round_val > 0:
-            centroids.append(np.round(r.Centroid,round_val))
+            centroids.append(np.round(r.Centroid, round_val))
         else:
             centroids.append(r.Centroid)
 
@@ -38,6 +38,7 @@ def crop_vol(vol, crop_by_dim):
     vol = skimage.util.crop(vol, crop_by_dim)
     return vol
 
+
 def remove_border_objects(vol):
 
     from skimage.segmentation import clear_border
@@ -46,30 +47,25 @@ def remove_border_objects(vol):
     vol = clear_border(vol)
     return vol
 
-def relabel_objects(vol,start=1):
+
+def relabel_objects(vol):
     # relabel objects starting from 1
-
-    uid = np.unique(vol)
-    uid = uid[uid > 0] #disregard values <= 0 as background
-    vol_out = np.zeros_like(vol, dtype='uint32')
-    c = start
-    for u in uid:
-        vol_out[vol == u] = c
-        c += 1
-
+    import mahotas
+    vol_out, n = mahotas.labeled.relabel(vol)
     return vol_out
+
 
 def choose_channel_4d_3d(vol, channel):
     """
     Helper function to choose an individual channel from a cube
 
     Arguments:
-        predictions:  RAMONVolume containing a numpy array or raw numpy array (x,y,z)
+        predictions:  RAMONVolume containing a numpy array (x,y,z)
 
     Returns:
         pixel_out: The raw trained classifier
     """
 
-    prob_channel = vol[:,:,:,channel]  #TODO assumes 3d data
+    prob_channel = vol[:, :, :, channel]
 
     return prob_channel
