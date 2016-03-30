@@ -8,10 +8,6 @@ def pr_object(detect, truth, overlap=10):
     from scipy import stats
 
     # TODO:  64-bit support
-    #detect = np.asarray(detect, dtype='int32')
-    #truth = np.asarray(truth, dtype='int32')
-    #detect, n_detect = mahotas.labeled.relabel(detect)
-    #truth, n_truth = mahotas.labeled.relabel(truth)
 
     # manual relabel (could be slow!)
     utruth = np.unique(truth)
