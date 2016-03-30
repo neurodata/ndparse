@@ -4,3 +4,6 @@ build/*.nii
 build/*
 .ipynb*
 *.pyc
+*.gz
+*.ilp
+*.png

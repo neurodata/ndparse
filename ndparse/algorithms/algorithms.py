@@ -4,20 +4,30 @@ import numpy as np
 import six
 
 
-def basic_objectify(predictions, threshold, min_size, max_size):
+def basic_objectify(predictions, threshold, min_size, max_size, remove_speckle=20):
 
+    # TODO handle 2D arrays
     import scipy.ndimage.measurements
     import mahotas
 
-    labeled, n = mahotas.label(predictions > threshold)
+    label = predictions > threshold
 
-    sizes = mahotas.labeled.labeled_size(labeled)
+    if remove_speckle > 0:
+        speckle, n = mahotas.label(label, np.ones((3,3,1), bool))
+        sizes = mahotas.labeled.labeled_size(speckle)
+        reject = np.where(sizes < remove_speckle)
+        label = mahotas.labeled.remove_regions(speckle, reject)
+        label = np.asarray(label > 0)
+
+    label = mahotas.label(label, np.ones((3,3,3), bool))[0]
+    #print n
+    sizes = mahotas.labeled.labeled_size(label)
     reject = np.where((sizes < min_size) | (sizes > max_size))
-    labeled = mahotas.labeled.remove_regions(labeled, reject)
-    relabeled, n = mahotas.labeled.relabel(labeled)
+    label = mahotas.labeled.remove_regions(label, reject)
+    objects, n = mahotas.labeled.relabel(label)
     print('After processing, there are {} objects left.'.format(n))
 
-    return relabeled
+    return objects
 
 
 def run_ilastik_pixel(input_data, classifier, threads=2, ram=2000):

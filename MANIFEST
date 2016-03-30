@@ -5,8 +5,9 @@ ndparse/__init__.py
 ndparse/algorithms/__init__.py
 ndparse/algorithms/algorithms.py
 ndparse/annotate/__init__.py
-ndparse/annotate/mana.py
+ndparse/annotate/annotate.py
+ndparse/assess/__init__.py
+ndparse/assess/assess.py
 ndparse/deploy/__init__.py
-ndparse/learn/__init__.py
 ndparse/utils/__init__.py
 ndparse/utils/utils.py

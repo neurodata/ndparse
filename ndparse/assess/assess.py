@@ -1,43 +1,70 @@
 import numpy as np
-
+import mahotas
 
 def pr_object(detect, truth, overlap=10):
+
     # we assume that both truth and detect volumes are separate objects
 
-    import ndparse.utils
     from scipy import stats
-    detect, n_detect = ndparse.utils.relabel_objects(detect)
-    truth, n_truth = ndparse.utils.relabel_objects(truth)
 
-    tp = 0
-    fp = 0
-    fn = 0
+    # TODO:  64-bit support
+    #detect = np.asarray(detect, dtype='int32')
+    #truth = np.asarray(truth, dtype='int32')
+    #detect, n_detect = mahotas.labeled.relabel(detect)
+    #truth, n_truth = mahotas.labeled.relabel(truth)
+
+    # manual relabel (could be slow!)
+    utruth = np.unique(truth)
+    utruth = utruth[utruth > 0]
+    udetect = np.unique(detect)
+    udetect = udetect[udetect > 0]
+
+    tp = 0.0
+    fp = 0.0
+    fn = 0.0
 
     # TODO:  removing only greatest match
 
     # for each truth object find a detection
-    for i in range(1, n_detect+1):  # background is ignored
-
-        match = detect[truth == i]
+    for t in utruth:  # background is ignored
+        #print i
+        match = detect[truth == t]
         match = match[match > 0]  # get rid of spurious values
+        match = stats.mode(match)
 
-        if len(match) >= overlap:
+        if match[1] >= overlap:
             tp += 1
 
-            match = stats.mode(match)
             # any detected objects can only be used once, so remove them here.
-            detect[detect == match] = 0
-
+            #detect = mahotas.labeled.remove_regions(detect, match[0])
+            detect[detect == match[0]] = 0
         else:
             fn += 1
 
-        detect_left, fp = ndparse.utils.relabel_objects(detect)
+    # detect_left, fp = mahotas.labeled.relabel(detect)
+    fp = np.unique(detect)
+    fp = fp[fp > 0]
+    fp = len(fp)
 
-    precision = tp/(tp+fp)
-    recall = tp/(tp+fn)
-    f1 = (2*precision*recall)/(precision+recall)
+    precision = 0
+    recall = 0
 
-    return precision, recall, f1, tp, fp, fn
+    if tp + fp > 0:
+        precision = tp/(tp+fp)
+
+    if tp + fn > 0:
+        recall = tp/(tp+fn)
+
+    if (precision == 0) or (recall == 0):
+        f1 = 0
+    else:
+        f1 = (2*precision*recall)/(precision+recall)
+
+    print precision
+    print recall
+    print f1
+
+    return precision, recall, f1
 
 
 def find_operating_point(recall_vec, precision_vec, op_point='f1'):
@@ -102,6 +129,7 @@ def pr_curve_objectify_sweep(probs, truth, min_sizes=0, max_sizes=1e9,
     p_f1 = []
 
     for thresh in thresholds:
+        print thresh
         for min in min_sizes:
             for max in max_sizes:
 
@@ -111,7 +139,7 @@ def pr_curve_objectify_sweep(probs, truth, min_sizes=0, max_sizes=1e9,
 
                 p_min.append(min)
                 p_max.append(max)
-                p_thresh.append(thresh)
+                p_thresh.append(np.round(thresh,2))
                 p_recall.append(r)
                 p_precision.append(p)
                 p_f1.append(f1)
@@ -195,7 +223,7 @@ def gen_ramon_graph(token_synapse, channel_synapse,
 
 
 def plot(im1, im2=None, cmap1='gray', cmap2='jet', slice=0,
-         alpha=1, show_plot=True):
+         alpha=1, show_plot=True, save_plot=False):
     """
     Convenience function to handle plotting of neurodata arrays.
     Mostly tested with 8-bit image and 32-bit annos, but lots of
@@ -275,10 +303,15 @@ def plot(im1, im2=None, cmap1='gray', cmap2='jet', slice=0,
         im2_proc[im2_proc == 0] = np.nan  # zero out bg
         plt.imshow(im2_proc.T, cmap=cmap2,
                    alpha=alpha, interpolation='nearest')
+
+    if save_plot is not False:
+        # TODO: White-space
+        plt.savefig(save_plot, dpi=300, pad_inches=0)
+
     if show_plot is True:
         plt.show()
-    else:
-        return fig
+
+    pass
 
 
 def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,
@@ -358,9 +391,16 @@ def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,
         return mplfig_to_npimage(fig)
 
     animation = mpy.VideoClip(animate, duration=len(time))
-    animation.write_videofile(outFile, fps=fps, bitrate='5000k',
+
+    import os.path
+    extension = os.path.splitext(outFile)[1]
+
+    if extension is 'gif':
+        animation.write_gif(outFile, fps=fps, fuzz=0)
+
+    else: #'mp4'
+        animation.write_videofile(outFile, fps=fps, bitrate='5000k',
                               codec='libx264')
-    # animation.write_gif(outFile, fps=fps,fuzz=0)
 
 
 def print_ramon(ramon):
