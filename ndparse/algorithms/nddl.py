@@ -1,40 +1,31 @@
-""" EMLIB Functions for working with image data volumes.
+""" NDDL  Codes for Neuroscience Data Deep Learning.
 
- Data volumes
- ------------
- This module assumes that all image data volumes (by convention,
- have the variable name X) have dimensions:
+This module contains code for solving dense classification problems on neuroscience image data.  In particular, it provides a simple implementation of the approach described in [1] using the Keras deep learning library [2].
 
-          (z-slices, #channels, rows, cols)
+Note that there are a number of more recent proposals for effective and computationally efficient ways to solve dense classification and/or segmentation problems.  The code in this module is more of a legacy approach at this point, provided as a convenience to other researchers in the community.
 
-  For example, a grayscale EM volume with 10 slices each of
-  512x512 pixels will have shape
-          (10, 1, 512, 512)
+  REFERENCES:
+   [1] Ciresan, Dan, et al. "Deep neural networks segment neuronal membranes in electron microscopy images." Advances in neural information processing systems. 2012.
 
-  This module assumes that class label volumes (which conventionally will
-  be named Y) will only every have a single class label for each pixel.
-  Hence, the #channels dimension is unncessary.
-  Therefore, these volumes will have dimension
-
-          (z-slices, rows, cols)
-
-  This particular ordering of dimensions was chosen to maximize
-  compatibility with the CNN frameworks (and also works well with
-  numpy's slicing, which implicitly squeezes from the left).
-
+   [2] http://keras.io/
 """
 
-#__author__ = "Mike Pekala"
-#__copyright__ = "Copyright 2016, JHU/APL"
-#__license__ = "Apache 2.0"
+__author__ = "mjp"
+__copyright__ = "Copyright 2016, JHU/APL"
+__license__ = "Apache 2.0"
 
 
 import os, sys, re
+import time
+import random
+import argparse
+import logging
 import pdb
-
-import numpy as np
 from PIL import Image
 
+import numpy as np
+
+import scipy
 from scipy.signal import convolve2d
 from scipy.io import loadmat
 from scipy.ndimage.morphology import distance_transform_edt as bwdist
@@ -42,7 +33,20 @@ from scipy.ndimage.morphology import binary_dilation
 from scipy.ndimage.measurements import label as bwconncomp
 import h5py
 
+from keras.optimizers import SGD
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Convolution2D, MaxPooling2D
+from keras.layers.normalization import BatchNormalization
 
+from sobol_lib import i4_sobol_generate as sobol
+
+
+
+
+#-------------------------------------------------------------------------------
+# Functions for working with EM data files
+#-------------------------------------------------------------------------------
 
 def load_cube(dataFile, dtype='float32', addChannel=True):
     """ Loads a data volume.  This could be image data or per-pixel
@@ -216,7 +220,6 @@ def interpolate_nn(X):
 
 
 
-
 #-------------------------------------------------------------------------------
 # Functions for extracting tiles from images
 #-------------------------------------------------------------------------------
@@ -270,9 +273,7 @@ def stratified_interior_pixel_generator(Y, borderSize, batchSize,
     # Determine how many instances of each class to report
     # (the minimum over the total number)
     cnt = [np.sum( (Y==y) & bitMask ) for y in yAll]
-    #print('[emlib]: num. pixels per class label is: %s' % str(cnt))
     cnt = min(cnt)
-    #print('[emlib]: will draw %d samples from each class' % cnt)
 
     # Stratified sampling
     Idx = np.zeros((0,3), dtype=np.int32)  # three columns because there are 3 dimensions in the tensor
@@ -383,8 +384,6 @@ def region_sampling_pixel_generator(Y, borderSize, batchSize,
         indices = np.concatenate((zOnes, rows, cols), axis=1)
         AllIndices = np.concatenate((AllIndices, indices), axis=0)
         del idx, rows, cols, zOnes, indices
-
-        #print('[emlib]: finished sampling slice %d' % z)
 
     # randomize example order
     np.random.shuffle(AllIndices)
@@ -574,22 +573,10 @@ def metrics(Y, Yhat, display=False):
     return C, acc, precision, recall, f1
 
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-
-
-"""
-models
-"""
-
-#__author__ = "mjp"
-#
-
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers.normalization import BatchNormalization
-
-
+#-------------------------------------------------------------------------------
+# Deep learning models
+# In this module, we provide only one example deep learning model.
+#-------------------------------------------------------------------------------
 
 def ciresan_n3(n=65, nOutput=2):
     """An approximation of the N3 network from [1].
@@ -637,45 +624,9 @@ def ciresan_n3(n=65, nOutput=2):
     return model
 
 
-
-"""  Trains a CNN for dense (i.e. per-pixel) classification problems.
-
- The typical usage for this script is to run from the command line
- (often with nohup or equivalent, since it takes a long time).
- However, it is possible to call the train_model() function directly
- from within a python shell or ipython notebook if desired.
-
- Note that this script all image data volumes have dimensions:
-
- (1)         #slices x #channels x rows x colums
-
- and all label volumes have dimensions:
-
- (2)         #slices x rows x colums
-
-
- To set the gpu id (from the command line) use the THEANO_FLAGS
- environment variable
-"""
-
-#__author__ = "Mike Pekala"
-#__copyright__ = "Copyright 2016, JHU/APL"
-#__license__ = "Apache 2.0"
-
-
-import sys, os
-import time
-import random
-import argparse
-import logging
-import numpy as np
-import pdb
-
-from keras.optimizers import SGD
-
-import emlib
-import models as emm
-
+#-------------------------------------------------------------------------------
+#  Code for training a deep learning network
+#-------------------------------------------------------------------------------
 
 def _xform_minibatch(X):
     """Implements synthetic data augmentation by randomly appling
@@ -759,7 +710,7 @@ def _train_one_epoch(model, X, Y,
     #----------------------------------------
     nChannels, nRows, nCols = model.input_shape[1:4]
     assert(nRows == nCols)
-    ste = emlib.SimpleTileExtractor(nRows, X, Y, omitLabels=omitLabels)
+    ste = SimpleTileExtractor(nRows, X, Y, omitLabels=omitLabels)
 
     # some variables we'll use for reporting progress
     lastChatter = -2
@@ -771,7 +722,7 @@ def _train_one_epoch(model, X, Y,
     #----------------------------------------
     # Loop over mini-batches
     #----------------------------------------
-    it = emlib.stratified_interior_pixel_generator(Y, 0, batchSize,
+    it = stratified_interior_pixel_generator(Y, 0, batchSize,
                                                    omitLabels=omitLabels,
                                                    stopAfter=nBatches*batchSize)
 
@@ -829,7 +780,7 @@ def _evaluate(model, X, Y, omitLabels=[], batchSize=100, log=None):
     #----------------------------------------
     nChannels, tileRows, tileCols = model.input_shape[1:4]
     tileRadius = int(tileRows/2)
-    ste = emlib.SimpleTileExtractor(tileRows, X)
+    ste = SimpleTileExtractor(tileRows, X)
 
     numClasses = model.output_shape[-1]
     [numZ, numChan, numRows, numCols] = X.shape
@@ -839,7 +790,7 @@ def _evaluate(model, X, Y, omitLabels=[], batchSize=100, log=None):
     #----------------------------------------
     # Loop over mini-batches
     #----------------------------------------
-    it = emlib.interior_pixel_generator(X, tileRadius, batchSize)
+    it = interior_pixel_generator(X, tileRadius, batchSize)
 
     for mbIdx, (Idx, epochPct) in enumerate(it):
         n = Idx.shape[0]         # may be < batchSize on final iteration
@@ -922,14 +873,14 @@ def train_model(Xtrain, Ytrain,
     # rescale features to live in [0 1]
     # XXX: technically, should probably use scale factors from
     #      train volume on validation data...
-    Xtrain = emlib.rescale_01(Xtrain, perChannel=True)
-    Xvalid = emlib.rescale_01(Xvalid, perChannel=True)
+    Xtrain = rescale_01(Xtrain, perChannel=True)
+    Xvalid = rescale_01(Xvalid, perChannel=True)
 
     # Remap class labels to consecutive natural numbers.
     # Note that any pixels that should be omitted from the
     # analysis are mapped to -1 by this function.
-    Ytrain = emlib.number_classes(Ytrain, omitLabels)
-    Yvalid = emlib.number_classes(Yvalid, omitLabels)
+    Ytrain = number_classes(Ytrain, omitLabels)
+    Yvalid = number_classes(Yvalid, omitLabels)
 
 
     if log:
@@ -990,150 +941,14 @@ def train_model(Xtrain, Ytrain,
     return model
 
 
-
 #-------------------------------------------------------------------------------
-# Code for command-line interface
+#  Code for evaluating a model on new (test) data.
 #-------------------------------------------------------------------------------
-
-def _train_mode_args():
-    """Parses command line arguments for training a CNN.
-
-    Note that the variable names below need to align with the parameters
-    in train_model() in order to have any effect.
-    """
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--x-train', dest='emTrainFile',
-		    type=str, required=True,
-		    help='Filename of the training volume (train mode)')
-    parser.add_argument('--y-train', dest='labelsTrainFile',
-		    type=str, required=True,
-		    help='Filename of the training labels (train mode)')
-    parser.add_argument('--train-slices', dest='trainSlices',
-		    type=str, default='',
-		    help='(optional) limit to a subset of X/Y train')
-
-    parser.add_argument('--x-valid', dest='emValidFile',
-		    type=str, required=True,
-		    help='Filename of the validation volume (train mode)')
-    parser.add_argument('--y-valid', dest='labelsValidFile',
-		    type=str, required=True,
-		    help='Filename of the validation labels (train mode)')
-    parser.add_argument('--valid-slices', dest='validSlices',
-		    type=str, default='',
-		    help='(optional) limit to a subset of X/Y validation')
-
-    parser.add_argument('--omit-labels', dest='omitLabels',
-		    type=str, default='[-1,]',
-		    help='(optional) list of class labels to omit from training')
-
-    parser.add_argument('--model', dest='model',
-		    type=str, default='ciresan_n3',
-		    help='name of CNN model to use (python function)')
-    parser.add_argument('--num-epochs', dest='nEpochs',
-		    type=int, default=30,
-		    help='number of training epochs')
-    parser.add_argument('--max-mb-per-epoch', dest='maxMbPerEpoch',
-		    type=int, default=sys.maxint,
-		    help='maximum number of mini-batches to process each epoch')
-
-    parser.add_argument('--out-dir', dest='outDir',
-		    type=str, default='',
-		    help='directory where the trained file should be placed')
-
-    args = parser.parse_args()
-
-    # Map strings into python objects.
-    # A little gross to use eval, but life is short.
-    str_to_obj = lambda x: eval(x) if x else []
-
-    args.trainSlices = str_to_obj(args.trainSlices)
-    args.validSlices = str_to_obj(args.validSlices)
-    args.omitLabels = str_to_obj(args.omitLabels)
-
-    return args
-
-
 
 def dict_subset(dictIn, keySubset):
     """Returns a subdictionary of
     """
     return {k : dictIn[k] for k in dictIn if k in keySubset}
-
-''' train main
-if __name__ == "__main__":
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # setup logging and output directory
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    logger = logging.getLogger('train_model')
-    logger.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler()
-    ch.setFormatter(logging.Formatter('[%(asctime)s:%(name)s:%(levelname)s]  %(message)s'))
-    logger.addHandler(ch)
-
-    args = _train_mode_args()
-
-
-    # Use command line args to override default args for train_model().
-    # Note to self: the first co_argcount varnames are the
-    #               function's parameters.
-    validArgs = train_model.__code__.co_varnames[0:train_model.__code__.co_argcount]
-    cmdLineArgs = dict_subset(vars(args), validArgs)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # load training and validation volumes
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Xtrain = emlib.load_cube(args.emTrainFile, addChannel=True)
-    Ytrain = emlib.load_cube(args.labelsTrainFile, addChannel=False)
-
-    Xvalid = emlib.load_cube(args.emValidFile, addChannel=True)
-    Yvalid = emlib.load_cube(args.labelsValidFile, addChannel=False)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # do it
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    model = train_model(Xtrain, Ytrain, Xvalid, Yvalid, log=logger, **cmdLineArgs)
-
-
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-'''
-
-
-"""Deploys a previously trained CNN on image data.
-
- See train.py for an example of how to train a CNN.
-
- Note that this script all image data volumes have dimensions:
-
- (1)         #slices x #channels x rows x colums
-
-
- Notes:
-   o Currently assumes input image data is single channel (i.e. grayscale).
-   o Output probability values of -1 indicate pixels that were not
-     evaluated (e.g. due to boundary conditions or downsampling).
-"""
-
-#__author__ = "Mike Pekala"
-#__copyright__ = "Copyright 2016, JHU/APL"
-#__license__ = "Apache 2.0"
-
-
-import sys, os
-import time
-import random
-import argparse
-import logging
-import numpy as np
-import scipy
-import pdb
-
-import emlib
-import models as emm
-
-from sobol_lib import i4_sobol_generate as sobol
-
 
 
 
@@ -1171,7 +986,7 @@ def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0):
     # Pre-allocate some variables & storage.
     #----------------------------------------
     nChannels, tileRows, tileCols = model.input_shape[1:4]
-    ste = emlib.SimpleTileExtractor(tileRows, X)
+    ste = SimpleTileExtractor(tileRows, X)
 
     lastChatter = -2
     startTime = time.time()
@@ -1192,7 +1007,7 @@ def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0):
     # Loop over mini-batches
     #----------------------------------------
     # note: set tileRadius to 0 so we evaluate whole volume
-    it = emlib.interior_pixel_generator(X, 0, batchSize, mask=Mask)
+    it = interior_pixel_generator(X, 0, batchSize, mask=Mask)
 
     for mbIdx, (Idx, epochPct) in enumerate(it):
         n = Idx.shape[0] # may be < batchSize on final iteration
@@ -1241,7 +1056,7 @@ def deploy_model(X, weightsFile,
         X = X[slices,:,:]
 
     # rescale features to live in [0, 1]
-    X = emlib.rescale_01(X, perChannel=True)
+    X = rescale_01(X, perChannel=True)
 
     if log: log.info('X volume dimensions: %s' % str(X.shape))
     if log: log.info('X values min/max:    %g, %g' % (np.min(X), np.max(X)))
@@ -1269,84 +1084,3 @@ def deploy_model(X, weightsFile,
         if log: log.info('Probabilites stored in file %s' % outFile)
 
     return Prob
-
-
-
-#-------------------------------------------------------------------------------
-# Code for command-line interface
-#-------------------------------------------------------------------------------
-
-def _deploy_mode_args():
-    """Parameters for deploying a CNN.
-    """
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--x', dest='emFile',
-		    type=str, required=True,
-		    help='Filename of volume to evaluate')
-
-    parser.add_argument('--model', dest='modelName',
-		    type=str, default='ciresan_n3',
-		    help='name of CNN model to use (python function)')
-
-    parser.add_argument('--weight-file', dest='weightFile',
-		    type=str, required=True,
-		    help='CNN weights to use')
-
-    parser.add_argument('--slices', dest='slices',
-		    type=str, default='',
-		    help='(optional) subset of slices to evaluate')
-
-    parser.add_argument('--eval-pct', dest='evalPct',
-		    type=float, default=1.0,
-		    help='(optional) Percent of pixels to evaluate (in [0,1])')
-
-    parser.add_argument('--out-file', dest='outFile',
-		    type=str, required=True,
-		    help='Ouput file name (will contain probability estimates)')
-
-    args = parser.parse_args()
-
-    if not os.path.exists(os.path.dirname(args.outFile)):
-        os.makedirs(os.path.dirname(args.outFile))
-
-    if not args.outFile.endswith('.npy'):
-        args.outFile += '.npy'
-
-    # Map strings into python objects.
-    # A little gross to use eval, but life is short.
-    str_to_obj = lambda x: eval(x) if x else []
-
-    args.slices = str_to_obj(args.slices)
-
-    return args
-
-
-''' deploy main
-if __name__ == "__main__":
-
-    # setup logging
-    logger = logging.getLogger("deploy_model")
-    logger.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler()
-    ch.setFormatter(logging.Formatter('[%(asctime)s:%(name)s:%(levelname)s]  %(message)s'))
-    logger.addHandler(ch)
-
-
-    args = _deploy_mode_args()
-
-    # Use command line args to override default args for train_model().
-    # Note to self: the first co_argcount varnames are the
-    #               function's parameters.
-    from train import dict_subset
-    validArgs = deploy_model.__code__.co_varnames[0:deploy_model.__code__.co_argcount]
-    cmdLineArgs = dict_subset(vars(args), validArgs)
-
-    # load data volume
-    X = emlib.load_cube(args.emFile)
-
-    # do it
-    Prob = deploy_model(X, args.weightFile, log=logger, **cmdLineArgs)
-
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-'''
