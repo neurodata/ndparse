@@ -900,7 +900,7 @@ def train_model(Xtrain, Ytrain,
     # create and configure CNN
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if log: log.info('creating CNN')
-    model = getattr(emm, modelName)()
+    model = (globals()[modelName])()
     sgd = SGD(lr=learnRate0, decay=weightDecay, momentum=momentum, nesterov=True)
     model.compile(loss='categorical_crossentropy',
             class_mode='categorical',
@@ -1065,7 +1065,7 @@ def deploy_model(X, weightsFile,
     # initialize CNN
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if log: log.info('initializing CNN...')
-    model = getattr(emm, modelName)()
+    model = (globals()[modelName])()
     model.compile(optimizer='sgd',   # not used, but required by keras
                   loss='categorical_crossentropy',
                   class_mode='categorical')
