@@ -10,9 +10,9 @@ Note that there are a number of more recent proposals for effective and computat
    [2] http://keras.io/
 """
 
-__author__ = "mjp"
-__copyright__ = "Copyright 2016, JHU/APL"
-__license__ = "Apache 2.0"
+#__author__ = "mjp"
+#__copyright__ = "Copyright 2016, JHU/APL"
+#__license__ = "Apache 2.0"
 
 
 import os, sys, re
@@ -22,9 +22,7 @@ import argparse
 import logging
 import pdb
 from PIL import Image
-
 import numpy as np
-
 import scipy
 from scipy.signal import convolve2d
 from scipy.io import loadmat
@@ -33,16 +31,7 @@ from scipy.ndimage.morphology import binary_dilation
 from scipy.ndimage.measurements import label as bwconncomp
 import h5py
 
-from keras.optimizers import SGD
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers.normalization import BatchNormalization
-
 from sobol_lib import i4_sobol_generate as sobol
-
-
-
 
 #-------------------------------------------------------------------------------
 # Functions for working with EM data files
@@ -593,6 +582,14 @@ def ciresan_n3(n=65, nOutput=2):
     [1] Ciresan et al 'Deep neural networks segment neuronal membranes in
         electron microscopy images,' NIPS 2012.
     """
+
+    from keras.optimizers import SGD
+    from keras.models import Sequential
+    from keras.layers import Dense, Dropout, Activation, Flatten
+    from keras.layers import Convolution2D, MaxPooling2D
+    from keras.layers.normalization import BatchNormalization
+
+
     model = Sequential()
 
     # input: nxn images with 1 channel -> (1, n, n) tensors.
@@ -708,6 +705,13 @@ def _train_one_epoch(model, X, Y,
     #----------------------------------------
     # Pre-allocate some variables & storage.
     #----------------------------------------
+
+    from keras.optimizers import SGD
+    from keras.models import Sequential
+    from keras.layers import Dense, Dropout, Activation, Flatten
+    from keras.layers import Convolution2D, MaxPooling2D
+    from keras.layers.normalization import BatchNormalization
+
     nChannels, nRows, nCols = model.input_shape[1:4]
     assert(nRows == nCols)
     ste = SimpleTileExtractor(nRows, X, Y, omitLabels=omitLabels)
@@ -778,6 +782,13 @@ def _evaluate(model, X, Y, omitLabels=[], batchSize=100, log=None):
     #----------------------------------------
     # Pre-allocate some variables & storage.
     #----------------------------------------
+
+    from keras.optimizers import SGD
+    from keras.models import Sequential
+    from keras.layers import Dense, Dropout, Activation, Flatten
+    from keras.layers import Convolution2D, MaxPooling2D
+    from keras.layers.normalization import BatchNormalization
+
     nChannels, tileRows, tileCols = model.input_shape[1:4]
     tileRadius = int(tileRows/2)
     ste = SimpleTileExtractor(tileRows, X)
@@ -852,6 +863,13 @@ def train_model(Xtrain, Ytrain,
       outDir        : if not None, a directory where model weights
                       will be stored (highly recommended)
     """
+
+    from keras.optimizers import SGD
+    from keras.models import Sequential
+    from keras.layers import Dense, Dropout, Activation, Flatten
+    from keras.layers import Convolution2D, MaxPooling2D
+    from keras.layers.normalization import BatchNormalization
+
     if not outDir:
         if log: log.warning('No output directory specified - are you sure this is what you want?')
     elif not os.path.exists(outDir):
@@ -985,6 +1003,12 @@ def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0):
     #----------------------------------------
     # Pre-allocate some variables & storage.
     #----------------------------------------
+    from keras.optimizers import SGD
+    from keras.models import Sequential
+    from keras.layers import Dense, Dropout, Activation, Flatten
+    from keras.layers import Convolution2D, MaxPooling2D
+    from keras.layers.normalization import BatchNormalization
+
     nChannels, tileRows, tileCols = model.input_shape[1:4]
     ste = SimpleTileExtractor(tileRows, X)
 
@@ -1042,6 +1066,12 @@ def deploy_model(X, weightsFile,
       outFile       : File name where class probabilities should be stored
       evalPct       : Fraction of volume to evalute; \in [0,1]
     """
+
+    from keras.optimizers import SGD
+    from keras.models import Sequential
+    from keras.layers import Dense, Dropout, Activation, Flatten
+    from keras.layers import Convolution2D, MaxPooling2D
+    from keras.layers.normalization import BatchNormalization
 
     # Setup output file/dirctory
     if not outFile:
