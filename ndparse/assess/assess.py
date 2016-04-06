@@ -1,6 +1,7 @@
 import numpy as np
 import mahotas
 
+
 def pr_object(detect, truth, overlap=10):
 
     # we assume that both truth and detect volumes are separate objects
@@ -22,8 +23,8 @@ def pr_object(detect, truth, overlap=10):
     # TODO:  removing only greatest match
 
     # for each truth object find a detection
+
     for t in utruth:  # background is ignored
-        #print i
         match = detect[truth == t]
         match = match[match > 0]  # get rid of spurious values
         match = stats.mode(match)
@@ -32,7 +33,7 @@ def pr_object(detect, truth, overlap=10):
             tp += 1
 
             # any detected objects can only be used once, so remove them here.
-            #detect = mahotas.labeled.remove_regions(detect, match[0])
+            # detect = mahotas.labeled.remove_regions(detect, match[0])
             detect[detect == match[0]] = 0
         else:
             fn += 1
@@ -135,7 +136,7 @@ def pr_curve_objectify_sweep(probs, truth, min_sizes=0, max_sizes=1e9,
 
                 p_min.append(min)
                 p_max.append(max)
-                p_thresh.append(np.round(thresh,2))
+                p_thresh.append(np.round(thresh, 2))
                 p_recall.append(r)
                 p_precision.append(p)
                 p_f1.append(f1)
@@ -394,9 +395,9 @@ def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,
     if extension is 'gif':
         animation.write_gif(outFile, fps=fps, fuzz=0)
 
-    else: #'mp4'
+    else:  # 'mp4'
         animation.write_videofile(outFile, fps=fps, bitrate='5000k',
-                              codec='libx264')
+                                  codec='libx264')
 
 
 def print_ramon(ramon):

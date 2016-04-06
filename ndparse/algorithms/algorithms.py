@@ -13,14 +13,14 @@ def basic_objectify(predictions, threshold, min_size, max_size, remove_speckle=2
     label = predictions > threshold
 
     if remove_speckle > 0:
-        speckle, n = mahotas.label(label, np.ones((3,3,1), bool))
+        speckle, n = mahotas.label(label, np.ones((3, 3, 1), bool))
         sizes = mahotas.labeled.labeled_size(speckle)
         reject = np.where(sizes < remove_speckle)
         label = mahotas.labeled.remove_regions(speckle, reject)
         label = np.asarray(label > 0)
 
-    label = mahotas.label(label, np.ones((3,3,3), bool))[0]
-    #print n
+    label = mahotas.label(label, np.ones((3, 3, 3), bool))[0]
+
     sizes = mahotas.labeled.labeled_size(label)
     reject = np.where((sizes < min_size) | (sizes > max_size))
     label = mahotas.labeled.remove_regions(label, reject)
