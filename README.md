@@ -9,7 +9,7 @@ Installation
 You can either clone this repository and use it locally, or install from pypi:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pip install ndparse #not yet!
+pip install ndparse
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Use this Python library to easily interface with NeuroData algorithms to
@@ -45,6 +45,25 @@ pip install ndio ndparse
 For ilastik processing:
 
 ~~~
+
+import time
+t = time.time()
+import ndparse as ndp
+import ndio.remote.neurodata as ND
+nd = ND()
+pad = 30
+input_data = nd.get_cutout('bock11','image',22000-pad,23000+pad,22000-pad,23000+pad,3000-pad,3050+pad,resolution=1)
+classifier = 'bock11_v0.ilp'
+probs = ndp.algorithms.run_ilastik_pixel(input_data, classifier,threads=4, ram=4000)
+probs = ndp.utils.choose_channel_4d_3d(probs, 1)
+
+
+blank = np.where(sum(sum(input_data>0)) == 0)
+probs[:,:,blank] = 0
+probs = np.float16(probs)
+np.save('probs_temp.npy',probs)
+print 'time elapsed: ' + str(time.time()-t)
+ndp.plot(probs,slice=2)
 
 ~~~
 
