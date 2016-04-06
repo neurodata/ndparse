@@ -8,9 +8,9 @@ Installation
 
 You can either clone this repository and use it locally, or install from pypi:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~bash
 pip install ndparse
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~
 
 Use this Python library to easily interface with NeuroData algorithms to
 manually annotate data, use computer vision algorithms and deploy
@@ -30,7 +30,7 @@ To just use one of these, say **mana**, in python you can (and should) type the 
 
 *This repo is under extremely active development during the first quarter of 2016.  The previous version of mano, macho and ndod code may be found in [ndod](https://github.com/neurodata/ndod).  The core code that is used for computer vision by the neurodata team will be transitioned to a pip installable python package in the next few weeks.  Stay tuned.*
 
-~~~
+~~~bash
 pip install conda
 conda create -n ndparse -c ilastik ilastik-everything-but-tracking
 source activate ndparse
@@ -44,7 +44,7 @@ pip install ndio ndparse
 
 For ilastik processing:
 
-~~~
+~~~python
 
 import time
 t = time.time()
@@ -69,7 +69,7 @@ ndp.plot(probs,slice=2)
 
 To plot ndio obtained (RAMON or numpy array) data:
 
-~~~
+~~~python
 import ndparse as p
 import ndio.remote.neurodata as ND
 nd = ND()
@@ -79,4 +79,7 @@ im2 = nd.get_volume('ac3ac4','ac4_synapse_truth', 4400,5400, 5440, 6440, 1100, 1
 im = nd.get_volume(token, channel, 4400, 5400, 5440, 6440, 1100, 1102, resolution=1)
 p.plt(im,im2,slice=1, alpha=0.5)
 ~~~
+
+
+ffmpeg library:
 https://github.com/imageio/imageio-binaries/tree/master/ffmpeg
