@@ -80,3 +80,14 @@ im = nd.get_volume(token, channel, 4400, 5400, 5440, 6440, 1100, 1102, resolutio
 p.plt(im,im2,slice=1, alpha=0.5)
 ~~~
 https://github.com/imageio/imageio-binaries/tree/master/ffmpeg
+
+
+import ndio.remote.neurodata as neurodata
+nd = neurodata()
+import ndio.ramon as ramon
+import numpy as np
+r = ramon.RAMONSegment()
+c = np.round(np.random.rand(5,5)*100,0)
+c = np.uint8(c)
+r.cutout = c
+nd.post_ramon('ndio_demos','ramontests',r)

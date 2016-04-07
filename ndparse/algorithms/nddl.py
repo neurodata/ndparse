@@ -1050,12 +1050,12 @@ def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0):
 
 
 
-def deploy_model(X, weightsFile,
-                 log=None,
-                 slices=[],
-                 modelName='ciresan_n3',
-                 evalPct=1.0,
-                 outFile=None):
+def fit(X, weightsFile,
+        log=None,
+        slices=[],
+        modelName='ciresan_n3',
+        evalPct=1.0,
+        outFile=None):
     """ Applies a previously trained CNN to new data.
 
 
