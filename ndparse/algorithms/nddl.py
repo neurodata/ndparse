@@ -594,7 +594,7 @@ def ciresan_n3(n=65, nOutput=2):
 
     # input: nxn images with 1 channel -> (1, n, n) tensors.
     # this applies 48 convolution filters of size 5x5 each.
-    model.add(Convolution2D(48, 5, 5, border_mode='valid', input_shape=(1, n, n)))
+    model.add(Convolution2D(48, 5, 5, border_mode='valid', dim_ordering='th', input_shape=(1, n, n)))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2,2)))
     model.add(BatchNormalization())  # note: we used LRN previously...
@@ -920,9 +920,7 @@ def train_model(Xtrain, Ytrain,
     if log: log.info('creating CNN')
     model = (globals()[modelName])()
     sgd = SGD(lr=learnRate0, decay=weightDecay, momentum=momentum, nesterov=True)
-    model.compile(loss='categorical_crossentropy',
-            class_mode='categorical',
-            optimizer=sgd)
+    model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Do training
@@ -1037,7 +1035,9 @@ def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0):
         n = Idx.shape[0] # may be < batchSize on final iteration
         Xi = ste.extract(Idx)
         prob = model.predict_on_batch(Xi)
-        Prob[Idx[:,0], :, Idx[:,1], Idx[:,2]] = prob[0][:n,:]
+	# mjp: Keras API update
+        #Prob[Idx[:,0], :, Idx[:,1], Idx[:,2]] = prob[0][:n,:]
+        Prob[Idx[:,0], :, Idx[:,1], Idx[:,2]] = prob[:n,:]
 
         # notify user re. progress
         elapsed = (time.time() - startTime) / 60.0
