@@ -947,7 +947,7 @@ def train_model(Xtrain, Ytrain,
 
         # Evaluate performance on validation data.
         if log: log.info('epoch %d complete. validating...' % epoch)
-        Prob, acc = _evaluate(model, Xvalid, Yvalid, omitLabels=[-1,], log=log)
+        Prob, acc = _evaluate(model, Xvalid, Y=Yvalid, omitLabels=[-1,], log=log)
         if log: log.info('accuracy on validation data: %0.2f%%' % acc)
 
         if outDir:
@@ -992,8 +992,8 @@ def _downsample_mask(X, pct):
 
 
 
-def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0, 
-              Y=None, omitLabels=[]):
+def _evaluate(model, X, batchSize=100, evalPct=1.0, 
+              Y=None, omitLabels=[], log=None):
     """Evaluate model on a data volume.
     """
     #----------------------------------------
