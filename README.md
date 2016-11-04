@@ -77,6 +77,17 @@ print 'time elapsed: ' + str(time()-t)
 ndp.plot(probs,slice=2)
 
 ~~~
+# To convert a probability cube to objects using ndparse, one could use the following sequence:
+
+# 3D probs array
+
+import numpy as np
+import ndparse as ndp
+probs = np.load('probs_temp.npy')
+obj = ndp.algorithms.basic_objectify(probs,threshold=0.5, min_size=10,max_size=5000)
+ndp.plot(obj,slice=10)
+
+~~~
 
 To plot ndio obtained (RAMON or numpy array) data:
 

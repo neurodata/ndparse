@@ -57,9 +57,9 @@ def pr_object(detect, truth, overlap=10):
     else:
         f1 = (2*precision*recall)/(precision+recall)
 
-    print precision
-    print recall
-    print f1
+    print(precision)
+    print(recall)
+    print(f1)
 
     return precision, recall, f1
 
@@ -126,7 +126,7 @@ def pr_curve_objectify_sweep(probs, truth, min_sizes=0, max_sizes=1e9,
     p_f1 = []
 
     for thresh in thresholds:
-        print thresh
+        print(thresh)
         for min in min_sizes:
             for max in max_sizes:
 
@@ -164,7 +164,7 @@ def gen_ramon_graph(token_synapse, channel_synapse,
 
     id_synapse = nd.get_ramon_ids(token_synapse, channel_synapse,
                                   ramon_type=ramon.RAMONSynapse)
-    print 'There are: {} synapses'.format(len(id_synapse))
+    print('There are: {} synapses'.format(len(id_synapse)))
 
     # Instantiate graph instance
     if is_directed is False:  # undirected case
@@ -175,8 +175,9 @@ def gen_ramon_graph(token_synapse, channel_synapse,
     # for each synapse
 
     for x in range(np.shape(id_synapse)[0]):
-
-        print str(x).zfill(4),
+        
+        print(str(x).zfill(4),end=" ")
+        
         s = nd.get_ramon_metadata(token_synapse, channel_synapse,
                                   [id_synapse[x]])[0]
 
@@ -185,7 +186,7 @@ def gen_ramon_graph(token_synapse, channel_synapse,
         direction = s.segments[:, 1]  # 1: axon/pre, 2: dendrite/post
         # print direction
         if len(segments) != 2:
-            print 'multi-way synapses not implemented!'
+            print('multi-way synapses not implemented!')
             raise
 
         s1 = nd.get_ramon_metadata(token_neurons, channel_neurons,
@@ -319,9 +320,11 @@ def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,
     import moviepy.editor as mpy
     from moviepy.video.io.bindings import mplfig_to_npimage
     import numpy as np
-    import matplotlib.pyplot as plt
+    import matplotlib
+    matplotlib.use('TkAgg')
 
-    time = range(0, int(np.shape(im1)[2]))
+    import matplotlib.pyplot as plt
+    time = list(range(0, int(np.shape(im1)[2])))
 
     fig = plt.figure()
     fig.set_size_inches(10, 10)
@@ -333,7 +336,6 @@ def save_movie(im1, im2=None, cmap1='gray', cmap2='jet', alpha=1,
 
         import numpy as np
         import matplotlib.pyplot as plt
-
         # get im1_proc as 2D array
 
         base_image = False

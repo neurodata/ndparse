@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import os
 import numpy as np
 import six
@@ -25,7 +25,7 @@ def basic_objectify(predictions, threshold, min_size, max_size, remove_speckle=2
     reject = np.where((sizes < min_size) | (sizes > max_size))
     label = mahotas.labeled.remove_regions(label, reject)
     objects, n = mahotas.labeled.relabel(label)
-    print('After processing, there are {} objects left.'.format(n))
+    print(('After processing, there are {} objects left.'.format(n)))
 
     return objects
 
@@ -75,7 +75,7 @@ def run_ilastik_pixel(input_data, classifier, threads=2, ram=2000):
     assert opPixelClassification.Classifier.ready()
 
     # For this example, we'll use random input data to "batch process"
-    print input_data.shape
+    print((input_data.shape))
 
     # In this example, we're using 2D data (extra dimension for channel).
     # Tagging the data ensures that ilastik interprets the axes correctly.
@@ -87,7 +87,7 @@ def run_ilastik_pixel(input_data, classifier, threads=2, ram=2000):
     label_colors = opPixelClassification.LabelColors.value
     probability_colors = opPixelClassification.PmapColors.value
 
-    print label_names, label_colors, probability_colors
+    print((label_names, label_colors, probability_colors))
 
     # Construct an OrderedDict of role-names -> DatasetInfos
     # (See PixelClassificationWorkflow.ROLE_NAMES)
@@ -101,8 +101,8 @@ def run_ilastik_pixel(input_data, classifier, threads=2, ram=2000):
     predictions = shell.workflow.batchProcessingApplet.\
         run_export(role_data_dict, export_to_array=True)
     predictions = np.squeeze(predictions)
-    print predictions.dtype, predictions.shape
+    print((predictions.dtype, predictions.shape))
 
-    print "DONE."
+    print("DONE.")
 
     return predictions

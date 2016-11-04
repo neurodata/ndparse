@@ -6,5 +6,5 @@ from .assess.assess import plot as plot
 from .assess import assess as assess
 from .algorithms import algorithms as algorithms
 from .utils import utils as utils
-from algorithms import nddl
+from .algorithms import nddl
 version = "0.0.6"

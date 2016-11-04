@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import numpy as np
 import mahotas
 
@@ -52,7 +52,7 @@ class annotate:
                   '.nii'.format(token, channel, x_start, x_stop,
                                 y_start, y_stop, z_start, z_stop,
                                 resolution)
-        print fileout
+        print(fileout)
         ndnifti.export_nifti(os.path.abspath(os.path.join(
                                              outdir, fileout)), image)
 
@@ -88,10 +88,10 @@ class annotate:
             anno = mahotas.labeled.label(anno, Bc=np.ones([3, 3, 3]))[0]
 
         # relabel ids from 1
-        print 'relabeling IDs...'
+        print('relabeling IDs...')
         anno, n_label = mahotas.labeled.relabel(anno)
 
-        print 'reserving IDs...'
+        print('reserving IDs...')
         n_label = int(n_label)
         ids = nd.reserve_ids(token, channel, n_label)
 
@@ -125,15 +125,15 @@ class annotate:
             raise ValueError("remote option not implemented.")
 
         # upload paint
-        print 'uploading paint...'
+        print('uploading paint...')
         nd.post_cutout(token, channel,
                        x_start, y_start, z_start,
                        vol, resolution=1)
 
         # upload ramon
-        print 'uploading RAMON...'
-        print 'Sorry, I can\'t upload RAMONObjects yet...' \
-              'waiting for new functionality.'
+        print('uploading RAMON...')
+        print('Sorry, I can\'t upload RAMONObjects yet...' \
+              'waiting for new functionality.')
 
         # for r in ramons:
         #     nd.post_ramon(token, channel, r)

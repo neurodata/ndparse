@@ -31,7 +31,7 @@ from scipy.ndimage.morphology import binary_dilation
 from scipy.ndimage.measurements import label as bwconncomp
 import h5py
 
-from sobol_lib import i4_sobol_generate as sobol
+from .sobol_lib import i4_sobol_generate as sobol
 
 #-------------------------------------------------------------------------------
 # Functions for working with EM data files
@@ -60,9 +60,9 @@ def load_cube(dataFile, dtype='float32', addChannel=True):
         #
         # Note: matlab uses fortran ordering, hence the permute/transpose here.
         d = h5py.File(dataFile, 'r')
-        if len(d.keys()) > 1:
+        if len(list(d.keys())) > 1:
             raise RuntimeError('mat file has more than one key - not yet supported!')
-        X = (d.values()[0])[:]
+        X = (list(d.values())[0])[:]
         X = np.transpose(X, (0,2,1))
 
     # Numpy file
@@ -92,7 +92,7 @@ def load_tiff_data(dataFile, dtype='float32'):
     # load the data from multi-layer TIF files
     dataImg = Image.open(dataFile)
     X = [];
-    for ii in xrange(sys.maxint):
+    for ii in range(sys.maxsize):
         Xi = np.array(dataImg, dtype=dtype)
         if Xi.ndim == 2:
             Xi = Xi[np.newaxis, ...] # add slice dimension
@@ -553,11 +553,11 @@ def metrics(Y, Yhat, display=False):
 
     if display:
         for ii in range(C.shape[0]):
-            print('  class=%d    %s' % (ii, C[ii,:]))
-        print('  accuracy:  %0.3f' % (acc))
-        print('  precision: %0.3f' % (precision))
-        print('  recall:    %0.3f' % (recall))
-        print('  f1:        %0.3f' % (f1))
+            print(('  class=%d    %s' % (ii, C[ii,:])))
+        print(('  accuracy:  %0.3f' % (acc)))
+        print(('  precision: %0.3f' % (precision)))
+        print(('  recall:    %0.3f' % (recall)))
+        print(('  f1:        %0.3f' % (f1)))
 
     return C, acc, precision, recall, f1
 
@@ -698,7 +698,7 @@ def _xform_minibatch(X):
 def _train_one_epoch(model, X, Y,
                      omitLabels=[],
                      batchSize=100,
-                     nBatches=sys.maxint,
+                     nBatches=sys.maxsize,
                      log=None):
     """Trains the model for one epoch.
     """
@@ -833,7 +833,7 @@ def train_model(Xtrain, Ytrain,
                 learnRate0=0.01,
                 weightDecay=1e-6,
                 momentum=0.9,
-                maxMbPerEpoch=sys.maxint,
+                maxMbPerEpoch=sys.maxsize,
                 nEpochs=30,
                 log=None,
                 outDir=None):
