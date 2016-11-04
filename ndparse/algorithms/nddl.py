@@ -506,7 +506,7 @@ class SimpleTileExtractor:
             self._Xb[jj, :, :, :] = self._X[ Idx[jj,0], :, a:b, c:d ]
 
             if self._Yb.size > 0:
-                yj = self._Y[ Idx[jj,0], Idx[jj,1], Idx[jj,2] ]
+                yj = int(self._Y[ Idx[jj,0], Idx[jj,1], Idx[jj,2] ])
                 # store the class label as a 1 hot vector
                 self._Yb[jj,:] = 0
                 self._Yb[jj,yj] = 1
@@ -775,52 +775,54 @@ def _train_one_epoch(model, X, Y,
 
 
 
-def _evaluate(model, X, Y, omitLabels=[], batchSize=100, log=None):
-    """Evaluate model on held-out data.  Here, used to periodically
-    report performance on validation data.
-    """
-    #----------------------------------------
-    # Pre-allocate some variables & storage.
-    #----------------------------------------
-
-    from keras.optimizers import SGD
-    from keras.models import Sequential
-    from keras.layers import Dense, Dropout, Activation, Flatten
-    from keras.layers import Convolution2D, MaxPooling2D
-    from keras.layers.normalization import BatchNormalization
-
-    nChannels, tileRows, tileCols = model.input_shape[1:4]
-    tileRadius = int(tileRows/2)
-    ste = SimpleTileExtractor(tileRows, X)
-
-    numClasses = model.output_shape[-1]
-    [numZ, numChan, numRows, numCols] = X.shape
-    Prob = np.nan * np.ones([numZ, numClasses, numRows, numCols],
-                            dtype=np.float32)
-
-    #----------------------------------------
-    # Loop over mini-batches
-    #----------------------------------------
-    it = interior_pixel_generator(X, tileRadius, batchSize)
-
-    for mbIdx, (Idx, epochPct) in enumerate(it):
-        n = Idx.shape[0]         # may be < batchSize on final iteration
-        Xi = ste.extract(Idx)
-        prob = model.predict_on_batch(Xi)
-        Prob[Idx[:,0], :, Idx[:,1], Idx[:,2]] = prob[0][:n,:]
-
-    # Evaluate accuracy only on the subset of pixels that:
-    #   o were actually provided to the CNN (not downsampled)
-    #   o have a label that should be evaluated
-    #
-    # The mask tensor M will indicate which pixels to consider.
-    M = np.all(np.isfinite(Prob), axis=1)
-    for om in omitLabels:
-        M[Y==om] = False
-    Yhat = np.argmax(Prob, axis=1)  # probabilities -> class labels
-    acc = 100.0 * np.sum(Yhat[M] == Y[M]) / np.sum(M)
-
-    return Prob, acc
+#def _evaluate(model, X, Y, omitLabels=[], batchSize=100, log=None):
+#    """Evaluate model on held-out data.  Here, used to periodically
+#    report performance on validation data.
+#    """
+#    #----------------------------------------
+#    # Pre-allocate some variables & storage.
+#    #----------------------------------------
+#
+#    from keras.optimizers import SGD
+#    from keras.models import Sequential
+#    from keras.layers import Dense, Dropout, Activation, Flatten
+#    from keras.layers import Convolution2D, MaxPooling2D
+#    from keras.layers.normalization import BatchNormalization
+#
+#    nChannels, tileRows, tileCols = model.input_shape[1:4]
+#    tileRadius = int(tileRows/2)
+#    ste = SimpleTileExtractor(tileRows, X)
+#
+#    numClasses = model.output_shape[-1]
+#    [numZ, numChan, numRows, numCols] = X.shape
+#    Prob = np.nan * np.ones([numZ, numClasses, numRows, numCols],
+#                            dtype=np.float32)
+#
+#    #----------------------------------------
+#    # Loop over mini-batches
+#    #----------------------------------------
+#    it = interior_pixel_generator(X, tileRadius, batchSize)
+#
+#    for mbIdx, (Idx, epochPct) in enumerate(it):
+#        n = Idx.shape[0]         # may be < batchSize on final iteration
+#        Xi = ste.extract(Idx)
+#        prob = model.predict_on_batch(Xi)
+#	# mjp: keras API change
+#        #Prob[Idx[:,0], :, Idx[:,1], Idx[:,2]] = prob[0][:n,:]
+#        Prob[Idx[:,0], :, Idx[:,1], Idx[:,2]] = prob[:n,:]
+#
+#    # Evaluate accuracy only on the subset of pixels that:
+#    #   o were actually provided to the CNN (not downsampled)
+#    #   o have a label that should be evaluated
+#    #
+#    # The mask tensor M will indicate which pixels to consider.
+#    M = np.all(np.isfinite(Prob), axis=1)
+#    for om in omitLabels:
+#        M[Y==om] = False
+#    Yhat = np.argmax(Prob, axis=1)  # probabilities -> class labels
+#    acc = 100.0 * np.sum(Yhat[M] == Y[M]) / np.sum(M)
+#
+#    return Prob, acc
 
 
 
@@ -990,13 +992,9 @@ def _downsample_mask(X, pct):
 
 
 
-def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0):
-    """Evaluate model on held-out data.
-
-    Returns:
-      Prob : a tensor of per-pixel probability estimates with dimensions:
-         (#layers, #classes, width, height)
-
+def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0, 
+              Y=None, omitLabels=[]):
+    """Evaluate model on a data volume.
     """
     #----------------------------------------
     # Pre-allocate some variables & storage.
@@ -1028,11 +1026,10 @@ def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0):
     #----------------------------------------
     # Loop over mini-batches
     #----------------------------------------
-    # note: set tileRadius to 0 so we evaluate whole volume
     it = interior_pixel_generator(X, 0, batchSize, mask=Mask)
 
     for mbIdx, (Idx, epochPct) in enumerate(it):
-        n = Idx.shape[0] # may be < batchSize on final iteration
+        n = Idx.shape[0]         # may be < batchSize on final iteration
         Xi = ste.extract(Idx)
         prob = model.predict_on_batch(Xi)
 	# mjp: Keras API update
@@ -1045,7 +1042,21 @@ def _evaluate(model, X, log=None, batchSize=100, evalPct=1.0):
             lastChatter = elapsed
             if log: log.info("  last pixel %s (%0.2f%% complete)" % (str(Idx[-1,:]), 100.*epochPct))
 
-    return Prob
+    #----------------------------------------
+    # (optional) report accuracy
+    #----------------------------------------
+    if Y is not None:
+        # evaluate subset of pixels that were (a) not downsampled
+        # and (b) have a label that the caller cares about.
+        # The mask M will address this.
+        M = np.all(Prob >= 0, axis=1)
+        for om in omitLabels:
+            M[Y==om] = False
+        Yhat = np.argmax(Prob, axis=1)  # probabilities -> class labels
+        acc = 100.0 * np.sum(Yhat[M] == Y[M]) / np.sum(M)
+        return Prob, acc
+    else:
+        return Prob
 
 
 
