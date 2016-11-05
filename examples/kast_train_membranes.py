@@ -37,7 +37,7 @@ if __name__ == '__main__':
     print('train labels shape: %s' % str(Y.shape))
 
     # split into train and validation
-    train_slices = np.arange(:50)
+    train_slices = np.arange(50)
     valid_slices = np.arange(95,100)
     n_epochs = 30
 
