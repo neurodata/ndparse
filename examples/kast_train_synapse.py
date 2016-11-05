@@ -3,7 +3,7 @@ A simple example of training the weights of a DNN.
 Customize as needed for your application.
 
 Example usage:
-    THEANO_FLAGS='floatX=float32,device=gpu3' nohup python kast_train_synapse.py &
+    (THEANO_FLAGS='floatX=float32,device=gpu3' nohup python kast_train_synapse.py &) > train.synapse.out
 """
 
 
