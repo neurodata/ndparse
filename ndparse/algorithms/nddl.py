@@ -741,7 +741,7 @@ def _train_one_epoch(model, X, Y,
 
         # do training
         tic = time.time()
-        loss, acc = model.train_on_batch(Xi, Yi, accuracy=True)
+        loss, acc = model.train_on_batch(Xi, Yi)
         gpuTime += time.time() - tic
 
         accBuffer.append(acc);  lossBuffer.append(loss)
