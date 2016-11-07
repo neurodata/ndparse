@@ -1108,8 +1108,8 @@ def fit(X, weightsFile,
     if log: log.info('initializing CNN...')
     model = (globals()[modelName])()
     model.compile(optimizer='sgd',   # not used, but required by keras
-                  loss='categorical_crossentropy',
-                  class_mode='categorical')
+                  loss='categorical_crossentropy')
+                  #class_mode='categorical')
     model.load_weights(weightsFile)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
