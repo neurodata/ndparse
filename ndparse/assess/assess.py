@@ -176,7 +176,7 @@ def gen_ramon_graph(token_synapse, channel_synapse,
 
     for x in range(np.shape(id_synapse)[0]):
         
-        print(str(x).zfill(4),end=" ")
+        #print(str(x).zfill(4),end=" ")
         
         s = nd.get_ramon_metadata(token_synapse, channel_synapse,
                                   [id_synapse[x]])[0]
