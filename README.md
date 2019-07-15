@@ -1,9 +1,10 @@
-![Downloads shield](https://img.shields.io/pypi/dm/ndmg.svg)
+
 
 **ndparse** is the NeuroData Parse parent repository
 
 ndparse:  NeuroData Parse
 =========================
+![Downloads shield](https://img.shields.io/pypi/dm/ndparse.svg)
 
 Installation
 ------------
